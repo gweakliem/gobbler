@@ -3,7 +3,7 @@ mod state;
 
 fn main() {
     let context = BTermBuilder::simple80x50()
-        .with_title("Hello Bracket World").build();
+        .with_title("Gobbler").build();
 
     match context {
         Ok(bterm) => {
