@@ -1,10 +1,10 @@
 //! State contains all the game state and logic.
 use bracket_lib::prelude::*;
 
-const GAME_WINDOW_HEIGHT: isize = 50;
-const GAME_WINDOW_WIDTH: isize = 80;
-const BOX_HEIGHT: isize = 5;
-const BOX_WIDTH: isize = 5;
+const GAME_WINDOW_HEIGHT: isize = 400;
+const GAME_WINDOW_WIDTH: isize = 640;
+const BOX_HEIGHT: isize = 132;
+const BOX_WIDTH: isize = 85;
 const CEILING_POS: isize = 5;
 const FLOOR_POS: isize = GAME_WINDOW_HEIGHT - BOX_HEIGHT;
 const LEFT_WALL_POS: isize = 5;
@@ -22,17 +22,28 @@ enum Moving {
     Left,
 }
 
-pub struct State {
-    box_y: isize, // Box's vertical position.
-    box_x: isize,
-    box_moving: Moving, // Direction the box is moving.
+struct Point {
+    x: i32,
+    y: i32,
 }
 
-pub fn new() -> State {
+pub struct State {
+    box_y: isize, // Oscar's vertical position.
+    box_x: isize,
+    box_moving: Moving, // Direction the box is moving.
+    food: Vec<Point>,
+    rng: RandomNumberGenerator,
+    timer: f32,
+}
+
+pub fn new(rng: RandomNumberGenerator) -> State {
     return State {
-        box_y: FLOOR_COLLISION,
-        box_x: (GAME_WINDOW_WIDTH / 2) - 3,
+        box_y: FLOOR_COLLISION-1,
+        box_x: (GAME_WINDOW_WIDTH / 2) - (BOX_WIDTH / 2),
         box_moving: Moving::Not,
+        food: Vec::new(),
+        rng,
+        timer: 0.0,
     };
 }
 
@@ -71,46 +82,50 @@ impl State {
 
     /// render takes the current game state and renders the screen.
     fn render(&mut self, bterm: &mut BTerm) {
-        bterm.cls_bg(WHITE);
-        bterm.draw_bar_horizontal(
-            0,                  // x
-            CEILING_POS,        // y
-            GAME_WINDOW_WIDTH,  // width
-            GAME_WINDOW_HEIGHT, // n
-            GAME_WINDOW_HEIGHT, // max
-            YELLOW,             // foreground color
-            YELLOW,             // background color
-        );
-        bterm.draw_bar_horizontal(
-            0,                  // x
-            FLOOR_POS,          // y
-            GAME_WINDOW_WIDTH,  // width
-            GAME_WINDOW_HEIGHT, // n
-            GAME_WINDOW_HEIGHT, // max
-            YELLOW,             // foreground color
-            YELLOW,             // background color
+        // 1 is with_simple_console_no_bg, the debug console
+        bterm.set_active_console(1);
+        bterm.cls();
+        bterm.print(1, 1, "Watch them go!");
+        bterm.printer(
+            1,
+            2,
+            &format!("#[pink]FPS: #[]{} fatty {} {}", bterm.fps, self.box_x, self.box_y),
+            TextAlign::Left,
+            None,
         );
 
-        bterm.draw_bar_vertical(
-            LEFT_WALL_POS,      // x
-            0,                  // y
-            GAME_WINDOW_WIDTH,  // width
-            GAME_WINDOW_HEIGHT, // n
-            GAME_WINDOW_HEIGHT, // max
-            YELLOW,             // foreground color
-            YELLOW,             // background color
+        // 0 is the sprite console
+        bterm.set_active_console(0);
+        bterm.cls();
+
+        bterm.add_sprite(
+            Rect::with_size(self.box_x, self.box_y, 32, 32),
+            400, // - self.box_y,
+            RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+            0, //self.frame % 4,
         );
 
-        bterm.draw_bar_vertical(
-            RIGHT_WALL_POS,     // x
-            0,                  // y
-            GAME_WINDOW_WIDTH,  // width
-            GAME_WINDOW_HEIGHT, // n
-            GAME_WINDOW_HEIGHT, // max
-            YELLOW,             // foreground color
-            YELLOW,             // background color
-        );
+        for dood in self.food.iter() {
+            bterm.add_sprite(
+                Rect::with_size(dood.x, dood.y, 32, 32),
+                400 - dood.y,
+                RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+                0, //self.frame % 4,
+            )
+        }
 
+        self.timer += bterm.frame_time_ms;
+        if self.timer > 66.0 {
+            self.timer = 0.0;
+            //self.frame += 1;
+
+            // for dood in self.food.iter_mut() {
+            //     dood.x += self.rng.range(0, 3) - 1;
+            //     dood.y += self.rng.range(0, 3) - 1;
+            // }
+        }
+
+/*
         bterm.draw_box_double(
             self.box_x, // x
             self.box_y, // y
@@ -119,6 +134,7 @@ impl State {
             RED,        // foreground color
             RED,        // background color
         );
+*/
 
         match self.box_moving {
             Moving::Down => {

@@ -737,6 +737,7 @@ name = "gobbler"
 version = "0.1.0"
 dependencies = [
  "bracket-lib",
+ "bracket-terminal",
 ]
 
 [[package]]
